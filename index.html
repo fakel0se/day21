@@ -1,0 +1,86 @@
+﻿<!doctype html>
+<html>
+  <head>
+    <script src="https://code.createjs.com/easeljs-0.8.0.min.js"> </script>
+    <script src="https://code.createjs.com/tweenjs-0.6.2.min.js"> </script>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"> </script>
+    <title>Canvas Animation</title>      
+	<button onClick="onMouseClick(-20)"> Левая </button>
+    <button onClick="onMouseClick(20)"> Правая </button>
+    <style>
+      #canvas {border: solid 1px black;}
+    </style>
+  </head> 
+  <body>
+    <canvas id="canvas"></canvas><br>
+    <script >
+		var socket = io();
+
+		stage = new createjs.Stage("canvas");
+		canvas = document.querySelector('canvas');
+		canvas.width = window.innerWidth-50;
+		canvas.height = 110;
+		var sprite;
+		
+		socket.on('connecting', function(playerID) {
+			var data = {
+			  images: ["https://opengameart.org/sites/default/files/Spritesheet_0.PNG"],
+			  frames: {width: 88, height: 80}			  
+			};
+			var spriteSheet = new createjs.SpriteSheet(data);
+			sprite = new createjs.Sprite(spriteSheet);
+			stage.addChild(sprite);
+			sprite.x = 40;
+			sprite.y = 10;
+			createjs.Ticker.addEventListener("tick", onTickHandler);
+			socket.emit('connected', playerID, sprite.x, sprite.y);
+		});
+		
+		socket.on('show players', function(players) {
+			for (player in players)
+				showPlayer(player, players[player].x, players[player].y);
+		});
+		
+		socket.on('imready', function(ID, x, y) {
+			showPlayer(ID, x, y);
+		});
+
+
+		socket.on('player moved', function(playerID, val) {
+			window[playerID].x += val;
+		});
+		
+		socket.on('dis', function(playerID) {
+			stage.removeChild(window[playerID]);
+		});		
+		
+		
+		function showPlayer(ID, x, y) {
+			console.log(ID);
+			var data = {
+			  images: ["https://opengameart.org/sites/default/files/Spritesheet_0.PNG"],
+			  frames: {width: 88, height: 80}			  
+			};
+			var spriteSheet = new createjs.SpriteSheet(data);
+			window[ID] = new createjs.Sprite(spriteSheet);
+			stage.addChild(window[ID]);
+			window[ID].x = x;
+			window[ID].y = y;
+			createjs.Ticker.addEventListener("tick", onTickHandler);
+		
+		}
+		  
+		function onTickHandler(evt) {   
+			stage.update();
+		};
+			
+		  function onMouseClick(val) {
+			socket.emit('button clicked', val);
+		};
+
+		socket.on('button clicked', function(val){
+			sprite.x += val;        
+		});
+    </script>
+  </body>
+</html>
